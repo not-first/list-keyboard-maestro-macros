@@ -35,21 +35,38 @@ export function MacroActionPanel({ macro, revalidate }: { macro: TypeMacro; reva
         {macro.enabled ? (
           <Action
             title="Disable Macro"
+            icon={Icon.XMarkCircle}
             onAction={() => {
               changeMacro(macro, false);
               revalidate();
             }}
+            shortcut={{ key: "d", modifiers: ["cmd", "shift"] }}
           />
         ) : (
           <Action
             title="Enable Macro"
+            icon={Icon.CheckCircle}
             onAction={() => {
               changeMacro(macro, true);
               revalidate();
             }}
+            shortcut={{ key: "e", modifiers: ["cmd", "shift"] }}
+          />
+        )}
+        {macro.uid && (
+          <Action.CopyToClipboard
+            title="Copy Macro UID"
+            content={macro.uid}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
           />
         )}
       </ActionPanel.Section>
+      <Action
+        title="Refetch Macros"
+        icon={Icon.ArrowClockwise}
+        onAction={revalidate}
+        shortcut={{ modifiers: ["cmd"], key: "r" }}
+      />
     </ActionPanel>
   );
 }

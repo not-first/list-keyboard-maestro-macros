@@ -4,13 +4,14 @@ import { Preferences } from "./lib/types";
 import { MacroActionPanel } from "./components/action-panel";
 import { useCachedPromise } from "@raycast/utils";
 import { fetchMacros } from "./lib/fetch-macros";
+import Fuse from "fuse.js";
 
 interface Arguments {
   name?: string;
 }
 
 export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
-  const {isLoading, data, revalidate } = useCachedPromise(fetchMacros);
+  const { isLoading, data, revalidate } = useCachedPromise(fetchMacros);
   const preferences = getPreferenceValues<Preferences>();
 
   const [searchText, setSearchText] = useState(props.arguments.name ?? "");
@@ -25,12 +26,25 @@ export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
   }
 
   useEffect(() => {
-    setFilteredList(
-      data?.map((item) => {
-        const macros = item.macros?.filter((o) => o.name?.toLowerCase().includes(searchText.toLowerCase()));
-        return { ...item, macros };
-      })
-    );
+    if (data) {
+      if (!searchText) {
+        setFilteredList(data);
+      } else {
+        const macros = data.flatMap((item) => item.macros || []);
+  
+        const fuse = new Fuse(macros, {
+          keys: ["name"],
+          threshold: 0.3,
+        });
+        const result = fuse.search(searchText).map(({ item }) => item);
+  
+        const groupedResult = data.map((group) => ({
+          ...group,
+          macros: group.macros?.filter((macro) => result.includes(macro)),
+        }));
+        setFilteredList(groupedResult);
+      }
+    }
   }, [searchText, data]);
 
   return (
@@ -44,12 +58,11 @@ export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
             return (
               <List.Item
                 key={macro.uid}
-                title={macro?.name ?? ""}
+                title={macro.enabled ? macro?.name ?? "" : ""}
+                subtitle={macro.enabled ? "" : macro?.name ?? ""}
                 icon={preferences.displayIcon ? "kmicon_32.png" : undefined}
                 accessories={triggers}
-                actions={
-                  <MacroActionPanel macro={macro} revalidate={revalidate}/>
-                }
+                actions={<MacroActionPanel macro={macro} revalidate={revalidate} />}
               />
             );
           })}

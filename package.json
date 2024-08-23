@@ -82,6 +82,7 @@
   "dependencies": {
     "@raycast/api": "^1.79.0",
     "@raycast/utils": "^1.16.5",
+    "fuse.js": "^7.0.0",
     "plist": "^3.0.4",
     "run-applescript": "^6.0.0"
   },
