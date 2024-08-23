@@ -31,13 +31,13 @@ export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
         setFilteredList(data);
       } else {
         const macros = data.flatMap((item) => item.macros || []);
-  
+
         const fuse = new Fuse(macros, {
           keys: ["name"],
           threshold: 0.3,
         });
         const result = fuse.search(searchText).map(({ item }) => item);
-  
+
         const groupedResult = data.map((group) => ({
           ...group,
           macros: group.macros?.filter((macro) => result.includes(macro)),
