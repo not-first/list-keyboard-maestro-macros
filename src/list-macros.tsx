@@ -1,0 +1,60 @@
+import { LaunchProps, List, getPreferenceValues } from "@raycast/api";
+import { useEffect, useState } from "react";
+import { Preferences } from "./lib/types";
+import { MacroActionPanel } from "./components/action-panel";
+import { useCachedPromise } from "@raycast/utils";
+import { fetchMacros } from "./lib/fetch-macros";
+
+interface Arguments {
+  name?: string;
+}
+
+export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
+  const {isLoading, data, revalidate } = useCachedPromise(fetchMacros);
+  const preferences = getPreferenceValues<Preferences>();
+
+  const [searchText, setSearchText] = useState(props.arguments.name ?? "");
+  const [filteredList, setFilteredList] = useState(data);
+
+  const displayTypes: string[] = [];
+  if (preferences.displayTriggers) {
+    displayTypes.push("Typed String Trigger");
+  }
+  if (preferences.displayShortcuts) {
+    displayTypes.push("Hot Key Trigger");
+  }
+
+  useEffect(() => {
+    setFilteredList(
+      data?.map((item) => {
+        const macros = item.macros?.filter((o) => o.name?.toLowerCase().includes(searchText.toLowerCase()));
+        return { ...item, macros };
+      })
+    );
+  }, [searchText, data]);
+
+  return (
+    <List isLoading={isLoading} searchText={searchText} onSearchTextChange={setSearchText}>
+      {filteredList?.map((group) => (
+        <List.Section key={group.uid} title={`${group.name}`} subtitle={`${group.macros?.length}`}>
+          {group.macros?.map((macro) => {
+            const triggers = macro.triggers
+              ?.filter((trigger) => trigger.type && displayTypes.includes(trigger.type))
+              .map((trigger) => ({ tag: { value: trigger.short } }));
+            return (
+              <List.Item
+                key={macro.uid}
+                title={macro?.name ?? ""}
+                icon={preferences.displayIcon ? "kmicon_32.png" : undefined}
+                accessories={triggers}
+                actions={
+                  <MacroActionPanel macro={macro} revalidate={revalidate}/>
+                }
+              />
+            );
+          })}
+        </List.Section>
+      ))}
+    </List>
+  );
+}
